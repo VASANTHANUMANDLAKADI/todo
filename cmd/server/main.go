@@ -19,8 +19,8 @@ func main() {
 	http.HandleFunc("/info", handler.InfoHandler)
 	http.HandleFunc("/create/todo", todoHandler.CreateTodo)
 	http.HandleFunc("/get/todos", handler.GetAllTodos)
-	http.HandleFunc("/update/todo", handler.UpdateTodo)
-	http.HandleFunc("/delete/todo", handler.DeleteTask)
+	http.HandleFunc("/update/todo", todoHandler.UpdateTodo)
+	http.HandleFunc("/delete/todo", todoHandler.DeleteTask)
 	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	response := "Hello "+ name

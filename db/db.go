@@ -3,14 +3,16 @@ package db
 import (
 	"context"
 	"fmt"
-	"os"
+	//"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func ConnectDB() (*pgxpool.Pool, error) {
 
-	connectionString := os.Getenv("DATABASE_URL")
+	fmt.Println("ConnectDB is cALLED")
+	//export DATABASE_URL="postgres://postgres:welcome@localhost:5432/todo_db?sslmode=disable"
+	connectionString := "postgres://postgres:welcome@localhost:5432/todo_db?sslmode=disable" //os.Getenv("DATABASE_URL")
 	
 
 	db, err := pgxpool.New(context.Background(), connectionString)
