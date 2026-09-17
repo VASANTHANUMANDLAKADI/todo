@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/VASANTHANUMANDLAKADI/todo/db"
 	"github.com/VASANTHANUMANDLAKADI/todo/internal/model"
 	"github.com/VASANTHANUMANDLAKADI/todo/internal/storage"
@@ -250,6 +251,94 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
     fmt.Println("Update error:", err.Error())
     http.Error(w, "Failed to update todo: "+err.Error(), http.StatusInternalServerError)
     return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(todo)
+}
+
+func (h *TodoHandler) CompleteTodo(w http.ResponseWriter, r *http.Request) {
+
+	idStr := r.URL.Query().Get("id")
+
+	if idStr == "" {
+		http.Error(w, "id is required", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Completed bool `json:"completed"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Connect to database
+	db, err := db.ConnectDB()
+	if err != nil {
+		fmt.Println("error:", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx := r.Context()
+
+	query := `
+		UPDATE todos
+		SET
+			completed = $1,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2
+		RETURNING
+			id,
+			title,
+			description,
+			completed,
+			COALESCE(created_at, CURRENT_TIMESTAMP),
+			COALESCE(updated_at, CURRENT_TIMESTAMP)
+	`
+
+	var todo model.Todo
+
+	err = db.QueryRow(
+		ctx,
+		query,
+		request.Completed,
+		id,
+	).Scan(
+		&todo.ID,
+		&todo.Title,
+		&todo.Description,
+		&todo.Completed,
+		&todo.CreatedAt,
+		&todo.UpdatedAt,
+	)
+
+	if err != nil {
+
+		if err == pgx.ErrNoRows {
+			http.Error(w, "Todo not found", http.StatusNotFound)
+			return
+		}
+
+		fmt.Println("Complete Todo error:", err.Error())
+		http.Error(
+			w,
+			"Failed to update completed status: "+err.Error(),
+			http.StatusInternalServerError,
+		)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
