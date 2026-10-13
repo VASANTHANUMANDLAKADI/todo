@@ -1,32 +1,33 @@
+
 package db
 
 import (
 	"context"
 	"fmt"
-	//"os"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func ConnectDB() (*pgxpool.Pool, error) {
+func ConnectDB(ctx context.Context) (*pgxpool.Pool, error) {
+	fmt.Println("ConnectDB is called")
 
-	fmt.Println("ConnectDB is cALLED")
-	//export DATABASE_URL="postgres://postgres:welcome@localhost:5432/todo_db?sslmode=disable"
-	connectionString := "postgres://postgres:welcome@localhost:5432/todo_db?sslmode=disable" //os.Getenv("DATABASE_URL")
-	
+	connectionString := os.Getenv("DATABASE_URL")
+	if connectionString == "" {
+		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
+	}
 
-	db, err := pgxpool.New(context.Background(), connectionString)
+	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Ping(context.Background())
+	err = pool.Ping(ctx)
 	if err != nil {
-		db.Close()
+		pool.Close()
 		return nil, err
 	}
 
 	fmt.Println("Database connected successfully")
-
-	return db, nil
+	return pool, nil
 }

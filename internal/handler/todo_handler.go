@@ -1,28 +1,38 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/VASANTHANUMANDLAKADI/todo/db"
 	"github.com/VASANTHANUMANDLAKADI/todo/internal/model"
-	"github.com/VASANTHANUMANDLAKADI/todo/internal/storage"
+	"github.com/jackc/pgx/v5"
+	//"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var IDcount = 0
 var Todos []*model.Todo
 
-type TodoHandler struct {
-	storage *storage.TodoStorage
+type DB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewTodoHandler(storage *storage.TodoStorage) *TodoHandler {
+type TodoHandler struct {
+	db DB
+}
+
+func (h *TodoHandler) DeleteTodo(rec *httptest.ResponseRecorder, req *http.Request) {
+	panic("unimplemented")
+}
+
+func NewTodoHandler(db DB) *TodoHandler {
 	return &TodoHandler{
-		storage: storage,
+		db: db,
 	}
 }
 
@@ -45,17 +55,6 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// db connection
-	db, err := db.ConnectDB()
-
-	if err != nil {
-		fmt.Println("error: ", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	println(db)
-
 	// Insert query
 	query := `
 		INSERT INTO todos
@@ -77,7 +76,7 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	var todo model.Todo
 
-	err = db.QueryRow(
+	err = h.db.QueryRow(
 		ctx,
 		query,
 		req.Title,
@@ -105,17 +104,8 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(todo)
 }
 
-func GetAllTodos(w http.ResponseWriter, r *http.Request) {
-	//db connection
-	db, err := db.ConnectDB()
+func (h *TodoHandler) GetAllTodos(w http.ResponseWriter, r *http.Request) {
 
-	if err != nil {
-		fmt.Println("error: ", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	println(db)
 	// select query to get all todo records`
 	query := `
     SELECT
@@ -132,13 +122,13 @@ func GetAllTodos(w http.ResponseWriter, r *http.Request) {
 
 	//db.Ping(ctx)
 	fmt.Println("before query", query)
-	 rows, err := db.Query(ctx, query)
+	rows, err := h.db.Query(ctx, query)
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(w, "Failed to fetch todos", http.StatusInternalServerError)
 		return
 	}
-	 defer rows.Close()
+	defer rows.Close()
 	var todos []model.Todo
 
 	// Read each row
@@ -202,13 +192,6 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := db.ConnectDB()
-	if err != nil {
-		fmt.Println("error:", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	// Update query
 	query := `
     UPDATE todos
@@ -231,7 +214,7 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 	var todo model.Todo
 
-	err = db.QueryRow(
+	err = h.db.QueryRow(
 		ctx,
 		query,
 		req.Title,
@@ -248,9 +231,9 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-    fmt.Println("Update error:", err.Error())
-    http.Error(w, "Failed to update todo: "+err.Error(), http.StatusInternalServerError)
-    return
+		fmt.Println("Update error:", err.Error())
+		http.Error(w, "Failed to update todo: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -283,15 +266,6 @@ func (h *TodoHandler) CompleteTodo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
-	// Connect to database
-	db, err := db.ConnectDB()
-	if err != nil {
-		fmt.Println("error:", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	ctx := r.Context()
 
 	query := `
@@ -311,7 +285,7 @@ func (h *TodoHandler) CompleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	var todo model.Todo
 
-	err = db.QueryRow(
+	err = h.db.QueryRow(
 		ctx,
 		query,
 		request.Completed,
@@ -357,13 +331,6 @@ func (h *TodoHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := db.ConnectDB()
-	if err != nil {
-		fmt.Println("error:", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	// Delete query
 	query := `
 		DELETE FROM todos
@@ -381,7 +348,7 @@ func (h *TodoHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	var todo model.Todo
 
-	err = db.QueryRow(
+	err = h.db.QueryRow(
 		ctx,
 		query,
 		id,
