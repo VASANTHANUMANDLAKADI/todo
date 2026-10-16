@@ -7,7 +7,7 @@ import (
 
 	"github.com/VASANTHANUMANDLAKADI/todo/db"
 	"github.com/VASANTHANUMANDLAKADI/todo/internal/handler"
-	)
+)
 
 func main() {
 
@@ -32,19 +32,19 @@ func main() {
 	http.HandleFunc("/update/todo", todoHandler.UpdateTodo)
 	http.HandleFunc("/completed/todo", todoHandler.CompleteTodo)
 	http.HandleFunc("/delete/todo", todoHandler.DeleteTask)
-	http.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	response := "Hello "+ name
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		response := "Hello " + name
 
-	//w.Header().Set("Content-Type", "application/json")
+		//w.Header().Set("Content-Type", "application/json")
 
-	//json.NewEncoder(w).Encode(response)
+		//json.NewEncoder(w).Encode(response)
 		w.Write([]byte(response))
 	})
 
 	port := ":8080"
 
-	log.Println("Server running on port", port)
+	log.Println("Todo API started successfully on port", port)
 
 	err = http.ListenAndServe(port, nil)
 	if err != nil {
