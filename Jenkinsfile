@@ -48,15 +48,55 @@ pipeline {
                 sh 'go build -o todo-api ./cmd/server'
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build -t todo-api:1.0 .
+                '''
+            }
+        }
+
+        stage('Deploy with Docker Compose') {
+            steps {
+                sh '''
+                    cd "$HOME/go/src/github.com/todo"
+
+                    docker compose up -d --no-build api
+                '''
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+                    set -eu
+
+                    for attempt in $(seq 1 15); do
+                        if curl --fail --silent http://localhost:8080/info; then
+                            echo
+                            echo "Todo API smoke test passed."
+                            exit 0
+                        fi
+
+                        echo "Waiting for Todo API... attempt $attempt/15"
+                        sleep 2
+                    done
+
+                    echo "Todo API smoke test failed."
+                    exit 1
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo 'Todo API CI pipeline completed successfully!'
+            echo 'Todo API CI/CD pipeline completed successfully!'
         }
 
         failure {
-            echo 'Todo API CI pipeline failed. Check the stage logs.'
+            echo 'Todo API pipeline failed. Check the stage logs.'
         }
 
         always {
