@@ -62,6 +62,12 @@ pipeline {
             }
         }
 
+	    stage('Archive Build Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'todo-api', fingerprint: true
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh '''
