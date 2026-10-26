@@ -43,6 +43,19 @@ pipeline {
             }
         }
 
+        stage('Check Go Formatting') {
+            steps {
+                sh '''
+                    if [ -n "$(gofmt -l .)" ]; then
+                        echo "The following Go files need formatting:"
+                        gofmt -l .
+                        exit 1
+                    fi
+
+                    echo "All Go files are correctly formatted."
+                '''
+            }
+        }
         stage('Build Todo API') {
             steps {
                 sh 'go build -o todo-api ./cmd/server'

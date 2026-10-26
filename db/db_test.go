@@ -1,16 +1,15 @@
-
 package db
 
 import (
 	"context"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestConnectDB_Success(t *testing.T) {
 	if os.Getenv("DATABASE_URL") == "" {
-    t.Skip("DATABASE_URL is not set; skipping database integration test")
-}
+		t.Skip("DATABASE_URL is not set; skipping database integration test")
+	}
 
 	ctx := context.Background()
 
