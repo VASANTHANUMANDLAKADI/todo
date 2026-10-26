@@ -33,14 +33,14 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                sh '''
+                sh '''#!/bin/bash
                     set -o pipefail
-                    go test -json ./... | tee test-results.json | $(go env GOPATH)/bin/go-junit-report -parser gojson > junit-report.xml
+                    go test -json ./... | tee test-results.json | "$(go env GOPATH)/bin/go-junit-report" -parser gojson > junit-report.xml
                 '''
             }
             post {
                 always {
-                    junit 'junit-report.xml'
+                    junit testResults: 'junit-report.xml', allowEmptyResults: true
                 }
             }
         }
