@@ -151,6 +151,56 @@ go test -count=1 ./...
 
 The Docker build also runs the tests before compiling the application.
 
+## Jenkins CI/CD Pipeline
+
+The project uses Jenkins to automatically build, test, analyze, and deploy the Todo API when changes are pushed to the configured GitHub branch.
+
+### Pipeline Prerequisites
+
+- Jenkins installed and running.
+- Git and Go available to the Jenkins process.
+- Docker Engine and Docker Compose installed.
+- Jenkins Pipeline, Git, JUnit, and GitHub integration plugins configured as needed.
+- A GitHub webhook configured to trigger the Jenkins job on push events.
+- PostgreSQL configuration and credentials managed securely outside source control.
+
+### Pipeline Stages
+
+The Jenkins pipeline performs the following steps:
+
+1. **Checkout** — retrieves the source code from GitHub.
+2. **Check Go Version** — verifies the Go installation.
+3. **Download Dependencies** — downloads Go module dependencies.
+4. **Compile** — runs `go build ./...`.
+5. **Unit Tests** — runs Go tests and generates a JUnit-compatible XML report.
+6. **Static Analysis** — runs `go vet ./...`.
+7. **Check Go Formatting** — checks that Go files are formatted with `gofmt`.
+8. **Build Todo API** — compiles the application binary.
+9. **Archive Build Artifact** — stores the `todo-api` binary as a Jenkins build artifact.
+10. **Build Docker Image** — builds the application image.
+11. **Deploy with Docker Compose** — updates the API container using Docker Compose.
+12. **Smoke Test** — checks the `/info` endpoint to verify that the application responds.
+
+The pipeline stops when a required stage fails, preventing later deployment stages from running after a failure.
+
+### GitHub Integration
+
+The Jenkins job is configured to build the `Create-Todo` branch. A GitHub push webhook triggers the pipeline when new changes are pushed to that branch.
+
+Webhook authentication is configured in Jenkins. Keep webhook secrets and database credentials out of the Git repository.
+
+### Verify a Jenkins Build
+
+1. Open the Jenkins dashboard.
+2. Select the `todo-api-ci` job.
+3. Open the latest build.
+4. Confirm that the build status is `SUCCESS`.
+5. Open **Test Result** to review passed, failed, and skipped tests.
+6. Open **Build Artifacts** to access the archived `todo-api` binary.
+7. Confirm that the smoke test for `http://localhost:8080/info` passes.
+
+A successful pipeline indicates that the required build, test, analysis, artifact, deployment, and smoke-test stages completed successfully.
+
 ## Docker Files
 
 - `Dockerfile` — builds and tests the Go application, then creates a runtime image.
